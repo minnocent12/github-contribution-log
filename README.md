@@ -19,19 +19,33 @@ What makes this issue especially appealing is the technical depth behind a seemi
 
 ### Problem Description
 
-[In your own words, what's broken or missing?]
+Trino is missing a built-in SQL function to convert strings to title case (also known as `initcap`). Title case means the first letter of each word is capitalized and the remaining letters are lowercase — for example, `'hello world'` becomes `'Hello World'`. Every major SQL engine (PostgreSQL, Oracle, Snowflake, Redshift, SparkSQL) has this function natively, but Trino does not. Users currently have to work around this using a complex `regexp_replace` expression, which is not intuitive and breaks on accented characters in non-English languages.
 
 ### Expected Behavior
 
-[What should happen?]
+Trino should support a native `initcap(string)` SQL function that converts any string to title case:
+
+```sql
+SELECT initcap('hello world');     -- 'Hello World'
+SELECT initcap('the HOME depot');  -- 'The Home Depot'
+SELECT initcap('new york city');   -- 'New York City'
+```
 
 ### Current Behavior
 
-[What actually happens?]
+Trino has no `initcap` function. Calling it throws an error. Users must use a workaround like:
+
+```sql
+SELECT regexp_replace('hello world', '(\w)(\w*)', x -> upper(x[1]) || lower(x[2]));
+```
+
+This workaround is verbose, hard to remember, and fails on strings with accented characters (e.g., Portuguese words like `EscritóRio` get incorrectly capitalized after accent marks).
 
 ### Affected Components
 
-[Which parts of the codebase are involved?]
+- **Core string functions** — where `upper()` and `lower()` are implemented in Trino's Java codebase. The new `initcap` function will be added alongside these.
+- **Trino's `Slice` type** — Trino represents strings internally as `Slice` objects (byte arrays) for performance. The implementation must operate directly on the `Slice` rather than converting to a Java `String` and back, as the maintainer has explicitly stated that approach is too slow and adding an external library for a single method is not acceptable in this project.
+- **`airlift/slice` library** — the upstream library that defines the `Slice` type. The maintainer linked [airlift/slice#177](https://github.com/airlift/slice/issues/177) as a reference for where the low-level byte manipulation logic may need to be added.
 
 ---
 
