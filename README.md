@@ -1,15 +1,17 @@
-# Contribution [#]: [Issue Title]
+# Contribution 1: Add function to convert strings to title case
 
-**Contribution Number:** [1 / 2 / 3]  
-**Student:** [Your Name]  
-**Issue:** [GitHub issue link]  
-**Status:** [Phase I / Phase II / Phase III / Phase IV] [In Progress / Complete]
+**Contribution Number:** 1  
+**Student:** Mirenge Innocent  
+**Issue:** https://github.com/trinodb/trino/issues/2942  
+**Status:** Phase I — In Progress
 
 ---
 
 ## Why I Chose This Issue
 
-[1-2 paragraphs explaining why this issue interests you, how it matches your skills/learning goals, what you hope to learn]
+I chose this issue because it sits at the intersection of my Java background and the kind of data infrastructure work I encounter as a software engineering intern in Home Depot's Supply Chain Technology group. Trino is a distributed SQL query engine used by large organizations to query massive datasets — the same category of tooling used in retail supply chain analytics. A built-in `initcap` / title case function is a small but high-value addition that engineers working with product names, store names, and supplier data deal with constantly.
+
+What makes this issue especially appealing is the technical depth behind a seemingly simple feature. The maintainer has made clear that the implementation must operate directly on Trino's internal `Slice` type — a byte array abstraction — rather than converting to a Java String. This means I'll need to understand how Trino handles string operations at a low level, which is a meaningful learning goal. The issue has been open since 2020, has an active maintainer who gave clear implementation guidance, and has no open pull request — making it a genuinely available contribution with a clear path forward.
 
 ---
 
