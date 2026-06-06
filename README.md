@@ -162,15 +162,14 @@ Verified the implementation compiles cleanly (`./mvnw install -pl core/trino-mai
 
 ## Pull Request
 
-**PR Link:** [GitHub PR URL when submitted]
+**PR Link:** https://github.com/trinodb/trino/pull/29773
 
-**PR Description:** [Draft or final PR description - much of the content above can be adapted]
+**Status:** Draft — awaiting CLA processing and CI
+
+**CLA:** Signed and emailed to cla@trino.io on 2026-06-06 (processing takes a few days)
 
 **Maintainer Feedback:**
-- [Date]: [Summary of feedback received]
-- [Date]: [How you addressed it]
-
-**Status:** [Awaiting review / Iterating / Approved / Merged]
+- *(awaiting review)*
 
 ---
 
