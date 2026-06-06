@@ -3,7 +3,7 @@
 **Contribution Number:** 1  
 **Student:** Mirenge Innocent  
 **Issue:** https://github.com/trinodb/trino/issues/2942  
-**Status:** Phase I — In Progress
+**Status:** Phase I — Complete
 
 ---
 
