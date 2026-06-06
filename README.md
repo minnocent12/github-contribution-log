@@ -53,19 +53,22 @@ This workaround is verbose, hard to remember, and fails on strings with accented
 
 ### Environment Setup
 
-[Notes on setting up your local development environment - challenges you faced, how you solved them]
+- **OS:** macOS (Apple Silicon)
+- **JDK:** Temurin 25 (Trino requires JDK ≥ 25.0.1 Temurin or Oracle — standard Homebrew OpenJDK 21 does not work)
+  - Installed via: `brew install --cask temurin@25`
+  - Set: `export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home`
+- **Build tool:** Maven Wrapper (`./mvnw`) included in the Trino repo
+- **Fork:** https://github.com/minnocent12/trino, branch `add-initcap-function`
 
 ### Steps to Reproduce
 
-1. [Step 1]
-2. [Step 2]
-3. [Observed result]
+1. Clone Trino, open a Trino SQL session, and run: `SELECT initcap('hello world');`
+2. Observed: `Function 'initcap' not registered` — the function simply does not exist in the engine.
+3. For comparison, `SELECT upper('hello world')` and `SELECT lower('HELLO WORLD')` work fine — only title case is missing.
 
 ### Reproduction Evidence
 
-- **Commit showing reproduction:** [Link to commit in your fork]
-- **Screenshots/logs:** [If applicable]
-- **My findings:** [What you discovered during reproduction]
+- **My findings:** Confirmed that `initcap` is absent from `StringFunctions.java` where all other string scalar functions live. The functions `upper()`, `lower()`, and `length()` all follow the same `@ScalarFunction` annotation pattern. There is no `initcap` entry anywhere in the Trino source. The issue has been open since 2020 with explicit maintainer guidance on how to implement it.
 
 ---
 
@@ -73,30 +76,41 @@ This workaround is verbose, hard to remember, and fails on strings with accented
 
 ### Analysis
 
-[Your analysis of the root cause - what's causing the issue?]
+The root cause is simply a missing feature: `initcap` was never implemented. Trino's string functions live in `core/trino-main/src/main/java/io/trino/operator/scalar/StringFunctions.java`. Every scalar string function follows the same pattern:
+
+1. Annotate with `@ScalarFunction`, `@Description`, `@LiteralParameters`, `@SqlType`
+2. Accept a `Slice` parameter (Trino's internal UTF-8 byte array string type)
+3. Return a `Slice`
+
+The key constraint set by maintainer `dain` on the original issue: **no Java String conversion**. The implementation must work directly on the `Slice` byte representation using Unicode code point iteration, the same way `SliceUtf8.toUpperCase()` and `SliceUtf8.toLowerCase()` work in the underlying `airlift/slice` library.
 
 ### Proposed Solution
 
-[High-level description of your fix approach]
+Implement `initcap(varchar)` and `initcap(char)` directly in `StringFunctions.java` by iterating over Unicode code points in the `Slice`, applying `Character.toTitleCase(int)` to the first letter of each word and `Character.toLowerCase(int)` to the rest, using the existing `tryGetCodePointAt` / `setCodePointAt` / `lengthOfCodePoint` utilities already used throughout the file.
 
 ### Implementation Plan
 
 Using UMPIRE framework (adapted):
 
-**Understand:** [Restate the problem]
+**Understand:** Add a native SQL `initcap(string)` function to Trino that converts strings to title case, operating directly on Trino's internal `Slice` type without String conversion.
 
-**Match:** [What similar patterns/solutions exist in the codebase?]
+**Match:** The existing `charUpper()` / `charLower()` pair in `StringFunctions.java` shows the exact pattern for adding both a `varchar` and a `char` variant of a string function. The `SliceUtf8` class (in airlift/slice) shows how to iterate code points correctly for Unicode safety.
 
-**Plan:** [Step-by-step implementation plan]
-1. [Modify file X to do Y]
-2. [Add function Z]
-3. [Update tests]
+**Plan:**
+1. Add `initcap(@SqlType("varchar(x)") Slice utf8)` after `charUpper()` in `StringFunctions.java` — iterates code points, tracks word boundaries by checking `Character.isLetterOrDigit()`, applies title/lower case per position
+2. Add `charInitcap(@SqlType("char(x)") Slice utf8)` immediately after — delegates to `initcap()`
+3. Add `testInitcap()` and `testCharInitcap()` in `TestStringFunctions.java` covering: empty string, single word, multiple words, ALL CAPS input, punctuation, hyphens, numbers, Unicode accented characters
 
-**Implement:** [Link to your branch/commits as you work]
+**Implement:** Branch `add-initcap-function` in fork https://github.com/minnocent12/trino
 
-**Review:** [Self-review checklist - does it follow the project's contribution guidelines?]
+**Review:**
+- [x] No Java String conversion — pure code point iteration on `Slice`
+- [x] Handles invalid UTF-8 bytes gracefully (copies byte through unchanged via `tryGetCodePointAt` returning negative)
+- [x] Handles Unicode (e.g., `österreich` → `Österreich`)
+- [x] Follows the same annotation pattern as all other scalar functions in the file
+- [x] Both `varchar` and `char` type variants provided (matching the `upper`/`lower` precedent)
 
-**Evaluate:** [How will you verify it works?]
+**Evaluate:** Run `./mvnw test -pl core/trino-main -Dtest=TestStringFunctions#testInitcap+testCharInitcap` — all tests pass.
 
 ---
 
@@ -104,36 +118,45 @@ Using UMPIRE framework (adapted):
 
 ### Unit Tests
 
-- [ ] Test case 1: [Description]
-- [ ] Test case 2: [Description]
-- [ ] Test case 3: [Description]
-
-### Integration Tests
-
-- [ ] Integration scenario 1
-- [ ] Integration scenario 2
+- [x] Empty string returns empty string
+- [x] Single lowercase word: `'hello'` → `'Hello'`
+- [x] Multiple words: `'hello world'` → `'Hello World'`
+- [x] ALL CAPS input: `'HELLO WORLD'` → `'Hello World'`
+- [x] Mixed case: `'hElLo WoRlD'` → `'Hello World'`
+- [x] Punctuation word boundary: `'what!!'` → `'What!!'`
+- [x] Hyphen word boundary: `'hello-world'` → `'Hello-World'`
+- [x] Multiple spaces: `'hello  world'` → `'Hello  World'`
+- [x] Numbers (digit resets word boundary): `'hello2world'` → `'Hello2World'`
+- [x] Digit-leading string: `'123abc'` → `'123Abc'`
+- [x] Unicode: `'österreich'` → `'Österreich'`
+- [x] CHAR type: all above cases via `charInitcap()`
 
 ### Manual Testing
 
-[What you tested manually and results]
+Verified the implementation compiles cleanly (`./mvnw install -pl core/trino-main -am -DskipTests`) and all targeted tests pass (`./mvnw test -pl core/trino-main -Dtest=TestStringFunctions#testInitcap+testCharInitcap`). Maven exits with no `FAILURE` or `ERROR` lines.
 
 ---
 
 ## Implementation Notes
 
-### Week [X] Progress
+### Week 1 Progress
 
-[What you built this week, challenges faced, decisions made]
+**Environment setup:** Discovered Trino requires JDK ≥ 25.0.1 Temurin — the standard macOS Homebrew OpenJDK 21 does not meet the requirement. Installed Temurin 25 via `brew install --cask temurin@25`. Had to set `JAVA_HOME` manually in the shell session.
 
-### Week [Y] Progress
+**Issue research:** Read the full comment thread on trinodb/trino#2942. Maintainer `dain` explicitly rejected the approach of converting `Slice` → Java `String` → back because it allocates unnecessarily on the hot path. Also confirmed that adding airlift/slice as a dependency for a single method is not acceptable — the implementation must be self-contained in `StringFunctions.java`.
 
-[Continue documenting as you work]
+**Implementation:** Located `charUpper()` in `StringFunctions.java` as the model, then wrote `initcap()` below it. Key decisions:
+- Used `tryGetCodePointAt` (not `getCodePointAt`) to handle invalid UTF-8 gracefully rather than throwing
+- `startOfWord = !Character.isLetterOrDigit(codePoint)` means any non-alphanumeric character (space, hyphen, punctuation) triggers title-case on the next character — matching PostgreSQL's `initcap` behavior
+- Used `Slices.ensureSize` because title-case can expand a code point (e.g., some Unicode characters have a different-width title case form)
 
 ### Code Changes
 
-- **Files modified:** [List]
-- **Key commits:** [Links to important commits]
-- **Approach decisions:** [Why you chose certain approaches]
+- **Files modified:**
+  - `core/trino-main/src/main/java/io/trino/operator/scalar/StringFunctions.java` — added `initcap()` and `charInitcap()`
+  - `core/trino-main/src/test/java/io/trino/operator/scalar/TestStringFunctions.java` — added `testInitcap()` and `testCharInitcap()`
+- **Branch:** `add-initcap-function`
+- **Approach decisions:** Chose to implement entirely in `StringFunctions.java` rather than waiting for `airlift/slice#177` to land. This keeps the PR self-contained and unblocked.
 
 ---
 
