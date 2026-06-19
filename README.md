@@ -68,6 +68,8 @@ This workaround is verbose, hard to remember, and fails on strings with accented
 
 ### Reproduction Evidence
 
+- **Commit showing reproduction:** Not applicable — this is a *missing-feature* issue, not a code defect. There is no buggy commit to point to; the "reproduction" is confirming the function does not exist. The fix is the first implementation commit ([e17e199](https://github.com/minnocent12/trino/commit/e17e1990beb4de0911e69442eeb6fe41cf09cccb)).
+- **Screenshots/logs:** Running `SELECT initcap('hello world')` in a Trino session returns a `Function 'initcap' not registered` error, while `upper()` and `lower()` resolve normally — confirming title case is the only one of the three missing.
 - **My findings:** Confirmed that `initcap` is absent from `StringFunctions.java` where all other string scalar functions live. The functions `upper()`, `lower()`, and `length()` all follow the same `@ScalarFunction` annotation pattern. There is no `initcap` entry anywhere in the Trino source. The issue has been open since 2020 with explicit maintainer guidance on how to implement it.
 
 ---
@@ -133,6 +135,10 @@ Using UMPIRE framework (adapted):
 - [x] Unicode: `'österreich'` → `'Österreich'`
 - [x] CHAR type: all above cases via `charInitcap()`
 
+### Integration Tests
+
+A scalar string function like `initcap()` does not require dedicated integration tests — its behavior is fully exercised by the unit tests in `TestStringFunctions`, which run the function end-to-end through Trino's expression evaluation engine (not just the raw Java method). Beyond that, Trino's CI runs the full product-test matrix (Hive, Delta Lake, Iceberg, fault-tolerant execution, etc.) against the change; all relevant suites pass, confirming the new function does not regress query execution across connectors.
+
 ### Manual Testing
 
 Verified the implementation compiles cleanly (`./mvnw install -pl core/trino-main -am -DskipTests`) and all targeted tests pass (`./mvnw test -pl core/trino-main -Dtest=TestStringFunctions#testInitcap+testCharInitcap`). Maven exits with no `FAILURE` or `ERROR` lines.
@@ -181,7 +187,9 @@ Verified the implementation compiles cleanly (`./mvnw install -pl core/trino-mai
 
 **PR Link:** https://github.com/trinodb/trino/pull/29773
 
-**Status:** Open — awaiting "Ready for Review" after CI passes on rebased branch
+**PR Description:** Adds a native `initcap(string)` SQL function that converts strings to title case (first letter of each word uppercased, the rest lowercased), implemented via `SliceUtf8.toTitleCase()` (airlift/slice 2.8). Includes `varchar` and `char` variants, unit tests in `TestStringFunctions`, and documentation in `functions/string.md`, `list.md`, and `list-by-topic.md`. Closes #2942.
+
+**Status:** Ready for review — all 100 CI checks pass; CLA signed; awaiting maintainer approval
 
 **CLA:** Approved by Martin Traverso (Trino co-founder) on 2026-06-15. Added to `trinodb/Contributors` GitHub team.
 
@@ -189,6 +197,8 @@ Verified the implementation compiles cleanly (`./mvnw install -pl core/trino-mai
 - **2026-06-10:** `ebyhr` added `needs-docs` and `syntax-needs-review` labels → Added documentation to three docs files; `docs` label auto-applied by GitHub Actions
 - **2026-06-18:** `PlePato` asked `@wendigo` if implementation aligns with airlift work → `wendigo` replied "new Slice method can be used" → Updated implementation to use `SliceUtf8.toTitleCase()` from airlift/slice 2.8
 - **2026-06-18:** CI `check-commits-dispatcher` failed: "PR requires a rebase. Found: 1 merge commits." → Fixed by cherry-picking 3 commits onto latest upstream master
+- **2026-06-19:** Re-triggered CI to clear flaky cloud/container suites → all 100 checks pass; marked PR ready for review
+- **2026-06-19:** `martint` (Trino co-founder) suggested renaming `initcap` → `title_case` for clarity → responding with cross-engine compatibility context (PostgreSQL/Oracle/Snowflake/Redshift/Spark all use `initcap`) and offering to keep `initcap` as an alias *(in progress)*
 
 ---
 
