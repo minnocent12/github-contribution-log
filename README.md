@@ -3,7 +3,7 @@
 **Contribution Number:** 1  
 **Student:** Mirenge Innocent  
 **Issue:** https://github.com/trinodb/trino/issues/2942  
-**Status:** Phase II — PR Open, Under Review
+**Status:** Phase IV — PR Open & Under Maintainer Review (Phases I–III complete)
 
 ---
 
