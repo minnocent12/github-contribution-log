@@ -3,7 +3,7 @@
 **Contribution Number:** 2
 **Student:** Mirenge Innocent
 **Issue:** https://github.com/trinodb/trino/issues/20428
-**Status:** Phase I — In Progress
+**Status:** Phase III — Implementation Complete | Draft PR [#30075](https://github.com/trinodb/trino/pull/30075) open, awaiting CI and maintainer review
 
 > 📁 Part of my [Open Source Contribution Log](README.md) · Contribution #2 of 2
 
@@ -159,24 +159,42 @@ _(to be completed)_
 
 - Selected and self-assigned issue #20428 (staff-approved off-sheet Trino issue).
 - Researched the closest sibling, `date_trunc`, and confirmed `date_bin` does not yet exist in the codebase.
-- Posted a claim comment proposing a PostgreSQL-compatible signature to address the `syntax-needs-review` label, asking maintainers to confirm before implementation.
+- Posted a claim comment proposing a PostgreSQL-compatible signature to address the `syntax-needs-review` label.
+- No maintainer reply after one week — proceeded with implementation based on the well-established PostgreSQL spec.
+
+### Week 5 Progress
+
+- Created branch `add-date-bin-function` from upstream master.
+- Implemented all four type/precision variants mirroring the `date_trunc` structure.
+- Key decision: `Math.floorDiv` (not integer division) ensures correct behavior when `source` is before `origin` — floor division rounds toward negative infinity, so the result is always the start of the bin that *contains* the source.
+- `INTERVAL DAY TO SECOND` arrives as `long` milliseconds; multiplied by 1000 for the plain `TIMESTAMP(p)` micros path; used directly for the `TIMESTAMP(p) WITH TIME ZONE` millis path.
+- Opened draft PR #30075 against `trinodb/trino`.
 
 ### Code Changes
 
-_(to be completed)_
+- **Files created:**
+  - `core/trino-main/src/main/java/io/trino/operator/scalar/timestamp/DateBin.java` — `TIMESTAMP(p)` short (`long`) + high-precision (`LongTimestamp`) variants
+  - `core/trino-main/src/main/java/io/trino/operator/scalar/timestamptz/DateBin.java` — `TIMESTAMP(p) WITH TIME ZONE` short (packed `long`) + `LongTimestampWithTimeZone` variants
+  - `core/trino-main/src/test/java/io/trino/operator/scalar/timestamp/TestDateBin.java`
+  - `core/trino-main/src/test/java/io/trino/operator/scalar/timestamptz/TestDateBin.java`
+- **Files modified:**
+  - `core/trino-main/src/main/java/io/trino/metadata/SystemFunctionBundle.java` — added import + two `.scalar()` registrations beside the `date_trunc` entries
+- **Branch:** `add-date-bin-function`
+- **Docs:** pending — will add after maintainer confirms the signature
 
 ---
 
 ## Pull Request
 
-**PR Link:** _(to be created)_
+**PR Link:** https://github.com/trinodb/trino/pull/30075
 
-**PR Description:** _(draft to be added)_
+**PR Description:** Adds `date_bin(stride INTERVAL DAY TO SECOND, source TIMESTAMP(p), origin TIMESTAMP(p))` for both plain and timezone-aware timestamp types. Mirrors the `date_trunc` structure — four type/precision variants registered in `SystemFunctionBundle`. Core algorithm: `origin + floorDiv(source − origin, stride) × stride`. Tests cover all 13 precisions, boundary, before-origin, sub-second stride, and zero-stride error.
 
 **Maintainer Feedback:**
-- **2026-06-19:** Self-assigned and posted claim comment proposing the `date_bin(INTERVAL DAY TO SECOND, TIMESTAMP(p), TIMESTAMP(p))` signature; awaiting maintainer confirmation.
+- **2026-06-19:** Self-assigned and posted claim comment proposing the PostgreSQL-compatible signature; awaiting maintainer confirmation per `syntax-needs-review` label.
+- **2026-06-27:** No reply after one week — proceeded with implementation. Draft PR #30075 opened; CI running.
 
-**Status:** Awaiting signature confirmation
+**Status:** Draft PR open — awaiting CI and maintainer signature confirmation
 
 ---
 
