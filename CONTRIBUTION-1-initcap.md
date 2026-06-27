@@ -139,11 +139,31 @@ Using UMPIRE framework (adapted):
 
 ### Integration Tests
 
-A scalar string function like `initcap()` does not require dedicated integration tests — its behavior is fully exercised by the unit tests in `TestStringFunctions`, which run the function end-to-end through Trino's expression evaluation engine (not just the raw Java method). Beyond that, Trino's CI runs the full product-test matrix (Hive, Delta Lake, Iceberg, fault-tolerant execution, etc.) against the change; all relevant suites pass, confirming the new function does not regress query execution across connectors.
+A scalar string function like `title_case()` does not require dedicated integration tests — its behavior is fully exercised by the unit tests in `TestStringFunctions`, which run the function end-to-end through Trino's expression evaluation engine (not just the raw Java method). Beyond that, Trino's CI runs the full product-test matrix (Hive, Delta Lake, Iceberg, fault-tolerant execution, etc.) against the change; all 102 CI checks pass, confirming the new function does not regress query execution across connectors.
+
+### Test Pattern Alignment
+
+The new tests follow the existing `TestStringFunctions` patterns exactly:
+- Each test method uses `assertions.function("title_case", "<input>")` — same helper as `upper()`, `lower()`, `trim()`, etc.
+- Assertions chain `.hasType(createVarcharType(n)).isEqualTo("<expected>")` — matching every other string function test in the file
+- `CHAR` type variant uses `assertions.function("title_case", "CAST(... AS CHAR(n))")` with `.hasType(createCharType(n)).isEqualTo(padRight(...))` — same as `testCharUpper()`/`testCharLower()`
 
 ### Manual Testing
 
-Verified the implementation compiles cleanly (`./mvnw install -pl core/trino-main -am -DskipTests`) and all targeted tests pass (`./mvnw test -pl core/trino-main -Dtest=TestStringFunctions#testInitcap+testCharInitcap`). Maven exits with no `FAILURE` or `ERROR` lines.
+**Automated test run (targeted):**
+```
+./mvnw test -pl core/trino-main \
+    -Dtest=TestStringFunctions#testTitleCase+testCharTitleCase
+```
+Result: `BUILD SUCCESS` — all 16 assertions pass (11 in `testTitleCase`, 5 in `testCharTitleCase`).
+
+**Compilation check:**
+```
+./mvnw install -pl core/trino-main -am -DskipTests
+```
+Result: `BUILD SUCCESS` — no compilation errors or warnings in the changed files.
+
+**CI (full matrix):** All 102 CI checks passed on the open PR — confirmed by the green check on [PR #29773](https://github.com/trinodb/trino/pull/29773).
 
 ---
 
@@ -174,14 +194,41 @@ Verified the implementation compiles cleanly (`./mvnw install -pl core/trino-mai
 
 ### Code Changes
 
-- **Files modified:**
-  - `core/trino-main/src/main/java/io/trino/operator/scalar/StringFunctions.java` — added `initcap()` and `charInitcap()` using `SliceUtf8.toTitleCase()`
-  - `core/trino-main/src/test/java/io/trino/operator/scalar/TestStringFunctions.java` — added `testInitcap()` and `testCharInitcap()`
-  - `docs/src/main/sphinx/functions/string.md` — added `initcap()` function entry
-  - `docs/src/main/sphinx/functions/list.md` — added `initcap` to alphabetical index
-  - `docs/src/main/sphinx/functions/list-by-topic.md` — added `initcap` to string functions topic list
-- **Branch:** `add-initcap-function`
-- **Key decision:** Initially implemented manually using `tryGetCodePointAt` + `Character.toTitleCase(int)` + `setCodePointAt`. Updated to `SliceUtf8.toTitleCase()` after `wendigo`'s feedback, making the implementation a clean one-liner aligned with the rest of the codebase.
+**Branch:** [`add-initcap-function`](https://github.com/minnocent12/trino/tree/add-initcap-function) on minnocent12/trino
+
+**Commit history:**
+
+| Commit | Date | Description |
+|--------|------|-------------|
+| [`e17e199`](https://github.com/minnocent12/trino/commit/e17e1990beb) | Jun 6, 2026 | Add initcap() string function for title case conversion |
+| [`a7019f4`](https://github.com/minnocent12/trino/commit/a7019f49bda) | Jun 10, 2026 | Add docs for initcap() string function |
+| [`8b3b180`](https://github.com/minnocent12/trino/commit/8b3b180b842) | Jun 18, 2026 | Use SliceUtf8.toTitleCase() for initcap() implementation |
+| [`f6136b7`](https://github.com/minnocent12/trino/commit/f6136b77a38) | Jun 27, 2026 | Rename initcap() to title_case() per maintainer feedback |
+
+**Files modified with key commits:**
+- `core/trino-main/src/main/java/io/trino/operator/scalar/StringFunctions.java` — `e17e199`, `8b3b180`, `f6136b7`: added `titleCase()` and `charTitleCase()` using `SliceUtf8.toTitleCase()` with `neverFails = true`
+- `core/trino-main/src/test/java/io/trino/operator/scalar/TestStringFunctions.java` — `e17e199`, `f6136b7`: added `testTitleCase()` (11 test cases) and `testCharTitleCase()` (5 test cases) — 16 new assertions total
+- `docs/src/main/sphinx/functions/string.md` — `a7019f4`, `f6136b7`: added `title_case()` function description and SQL example
+- `docs/src/main/sphinx/functions/list.md` — `a7019f4`, `f6136b7`: added `title_case` to alphabetical T section
+- `docs/src/main/sphinx/functions/list-by-topic.md` — `a7019f4`, `f6136b7`: added `title_case` to string functions topic list
+
+**Key decision:** Initially implemented manually using `tryGetCodePointAt` + `Character.toTitleCase(int)` + `setCodePointAt`. Updated to `SliceUtf8.toTitleCase()` after `wendigo`'s feedback (commit `8b3b180`), making the implementation a clean one-liner aligned with the rest of the codebase.
+
+---
+
+### Challenges Faced During Implementation
+
+**1. JDK version requirement was undocumented in the obvious places.**
+Trino requires JDK ≥ 25.0.1 Temurin specifically — not just any JDK 21+. The standard macOS Homebrew OpenJDK 21 silently failed with no clear error. *Fix:* Installed Temurin 25 via `brew install --cask temurin@25` and manually set `JAVA_HOME`.
+
+**2. The upstream library method (`SliceUtf8.toTitleCase()`) didn't exist yet.**
+When implementation began, `airlift/slice` had no `toTitleCase()` method — so I wrote the full code-point loop manually. Mid-review, maintainer `wendigo` merged `airlift/slice` PR #177 and bumped Trino to airlift 435. *Fix:* Updated implementation in commit `8b3b180` to delegate to the new library method, making the code cleaner and maintainer-approved.
+
+**3. Merge commit rejected by CI.**
+When syncing upstream to get airlift 435, I used `git merge` which created a merge commit. Trino's `check-commits-dispatcher` CI check explicitly rejects any PR containing merge commits. *Fix:* Aborted the rebase and cherry-picked the 3 commits cleanly onto the latest upstream master, then force-pushed.
+
+**4. Hyphen test case needed correction after switching to `SliceUtf8.toTitleCase()`.**
+The original manual implementation treated hyphens as word boundaries (PostgreSQL-style), so `'hello-world'` → `'Hello-World'`. `SliceUtf8.toTitleCase()` uses Unicode word boundaries (whitespace only), so the correct result is `'Hello-world'`. *Fix:* Updated the test expectation in commit `8b3b180` to match actual library behavior.
 
 ---
 
