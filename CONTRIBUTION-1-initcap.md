@@ -3,7 +3,7 @@
 **Contribution Number:** 1  
 **Student:** Mirenge Innocent  
 **Issue:** https://github.com/trinodb/trino/issues/2942  
-**Status:** Phase IV — PR Open & Under Maintainer Review (Phases I–III complete)
+**Status:** Phase IV — Complete ✓ | PR #29773 open, awaiting maintainer merge (rename discussion ongoing)
 
 > 📁 Part of my [Open Source Contribution Log](README.md) · Contribution #1 of 2
 
@@ -200,7 +200,8 @@ Verified the implementation compiles cleanly (`./mvnw install -pl core/trino-mai
 - **2026-06-18:** `PlePato` asked `@wendigo` if implementation aligns with airlift work → `wendigo` replied "new Slice method can be used" → Updated implementation to use `SliceUtf8.toTitleCase()` from airlift/slice 2.8
 - **2026-06-18:** CI `check-commits-dispatcher` failed: "PR requires a rebase. Found: 1 merge commits." → Fixed by cherry-picking 3 commits onto latest upstream master
 - **2026-06-19:** Re-triggered CI to clear flaky cloud/container suites → all 100 checks pass; marked PR ready for review
-- **2026-06-19:** `martint` (Trino co-founder) suggested renaming `initcap` → `title_case` for clarity → responding with cross-engine compatibility context (PostgreSQL/Oracle/Snowflake/Redshift/Spark all use `initcap`) and offering to keep `initcap` as an alias *(in progress)*
+- **2026-06-19:** `martint` (Trino co-founder) suggested renaming `initcap` → `title_case` for clarity → Replied with cross-engine compatibility context (PostgreSQL/Oracle/Snowflake/Redshift/Spark all use `initcap`) and offered `title_case` as primary name with `initcap` as alias
+- **2026-06-27:** One week since `martint`'s rename suggestion — awaiting direction before implementing rename
 
 ---
 
