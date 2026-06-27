@@ -3,7 +3,7 @@
 **Contribution Number:** 1  
 **Student:** Mirenge Innocent  
 **Issue:** https://github.com/trinodb/trino/issues/2942  
-**Status:** Phase IV — Complete ✓ | PR #29773 open, awaiting maintainer merge (rename discussion ongoing)
+**Status:** Phase IV — Complete ✓ | PR #29773 — review requested from maintainers; awaiting approval
 
 > 📁 Part of my [Open Source Contribution Log](README.md) · Contribution #1 of 2
 
@@ -189,9 +189,9 @@ Verified the implementation compiles cleanly (`./mvnw install -pl core/trino-mai
 
 **PR Link:** https://github.com/trinodb/trino/pull/29773
 
-**PR Description:** Adds a native `initcap(string)` SQL function that converts strings to title case (first letter of each word uppercased, the rest lowercased), implemented via `SliceUtf8.toTitleCase()` (airlift/slice 2.8). Includes `varchar` and `char` variants, unit tests in `TestStringFunctions`, and documentation in `functions/string.md`, `list.md`, and `list-by-topic.md`. Closes #2942.
+**PR Description:** Adds a native `title_case(string)` SQL function that converts strings to title case (first letter of each word uppercased, the rest lowercased), implemented via `SliceUtf8.toTitleCase()` (airlift/slice 2.8). Includes `varchar` and `char` variants, unit tests in `TestStringFunctions`, and documentation in `functions/string.md`, `list.md`, and `list-by-topic.md`. Closes #2942. Originally named `initcap`; renamed to `title_case` per `martint`'s feedback — alias discussion ongoing.
 
-**Status:** Ready for review — all 100 CI checks pass; CLA signed; awaiting maintainer approval
+**Status:** Review requested — all 102 CI checks pass; CLA signed; review formally requested from `martint` and `mosabua`
 
 **CLA:** Approved by Martin Traverso (Trino co-founder) on 2026-06-15. Added to `trinodb/Contributors` GitHub team.
 
@@ -200,8 +200,10 @@ Verified the implementation compiles cleanly (`./mvnw install -pl core/trino-mai
 - **2026-06-18:** `PlePato` asked `@wendigo` if implementation aligns with airlift work → `wendigo` replied "new Slice method can be used" → Updated implementation to use `SliceUtf8.toTitleCase()` from airlift/slice 2.8
 - **2026-06-18:** CI `check-commits-dispatcher` failed: "PR requires a rebase. Found: 1 merge commits." → Fixed by cherry-picking 3 commits onto latest upstream master
 - **2026-06-19:** Re-triggered CI to clear flaky cloud/container suites → all 100 checks pass; marked PR ready for review
-- **2026-06-19:** `martint` (Trino co-founder) suggested renaming `initcap` → `title_case` for clarity → Replied with cross-engine compatibility context (PostgreSQL/Oracle/Snowflake/Redshift/Spark all use `initcap`) and offered `title_case` as primary name with `initcap` as alias
-- **2026-06-27:** One week since `martint`'s rename suggestion — awaiting direction before implementing rename
+- **2026-06-19:** `martint` (Trino co-founder) suggested renaming `initcap` → `title_case` for clarity → Replied proposing `title_case` as primary with `initcap` as alias for cross-engine compatibility (PostgreSQL/Oracle/Snowflake/Redshift/Spark all use `initcap`)
+- **2026-06-27:** Implemented the rename — `title_case` across `StringFunctions.java`, `TestStringFunctions.java`, and all three docs files; 102/102 CI checks pass
+- **2026-06-27:** `PlePato` (maintainer) commented supporting the `initcap` alias: *"I agree with @minnocent12 — the engines that use initcap syntax: Postgres, Oracle, Databricks/SparkSQL, Snowflake, Redshift"* — alias decision pending `martint`'s confirmation
+- **2026-06-27:** PR description updated to reflect `title_case` rename and current state; review formally requested from `martint` and `mosabua`
 
 ---
 
