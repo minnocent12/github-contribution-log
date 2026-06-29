@@ -238,7 +238,7 @@ The original manual implementation treated hyphens as word boundaries (PostgreSQ
 
 **PR Description:** Adds a native `title_case(string)` SQL function that converts strings to title case (first letter of each word uppercased, the rest lowercased), implemented via `SliceUtf8.toTitleCase()` (airlift/slice 2.8). Includes `varchar` and `char` variants, unit tests in `TestStringFunctions`, and documentation in `functions/string.md`, `list.md`, and `list-by-topic.md`. Closes #2942. Originally named `initcap`; renamed to `title_case` per `martint`'s feedback — alias discussion ongoing.
 
-**Status:** Review requested — all 102 CI checks pass; CLA signed; review formally requested from `martint` and `mosabua`
+**Status:** `wendigo` approved ✓ — awaiting `martint` and `mosabua` reviews; CI 102/102 green
 
 **CLA:** Approved by Martin Traverso (Trino co-founder) on 2026-06-15. Added to `trinodb/Contributors` GitHub team.
 
@@ -251,6 +251,7 @@ The original manual implementation treated hyphens as word boundaries (PostgreSQ
 - **2026-06-27:** Implemented the rename — `title_case` across `StringFunctions.java`, `TestStringFunctions.java`, and all three docs files; 102/102 CI checks pass
 - **2026-06-27:** `PlePato` (maintainer) commented supporting the `initcap` alias: *"I agree with @minnocent12 — the engines that use initcap syntax: Postgres, Oracle, Databricks/SparkSQL, Snowflake, Redshift"* — alias decision pending `martint`'s confirmation
 - **2026-06-27:** PR description updated to reflect `title_case` rename and current state; review formally requested from `martint` and `mosabua`
+- **2026-06-29:** `wendigo` (Trino co-creator) **approved** the PR ✓ and asked `@martint` to weigh in on the function signature — `martint` and `mosabua` reviews still pending
 
 ---
 
