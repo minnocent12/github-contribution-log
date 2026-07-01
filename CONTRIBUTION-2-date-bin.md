@@ -59,7 +59,10 @@ No `date_bin` function exists. Users approximate with `date_trunc` (limited to f
 
 ### Environment Setup
 
-Same environment as Contribution #1 (already working): macOS, Temurin JDK 25, Maven Wrapper (`./mvnw`). Fork: https://github.com/minnocent12/trino.
+- **Branch:** `add-date-bin-function` — created from upstream `master` via `git checkout -b add-date-bin-function`
+- **Fork:** https://github.com/minnocent12/trino
+- **Setup approach:** Used the Maven Wrapper (`./mvnw`) with a selective module build to avoid rebuilding all 400+ modules: `./mvnw test -pl core/trino-main -am -DskipTests`. This is the same workflow established for Contribution #1 (macOS, Temurin JDK 25).
+- **Challenge encountered:** On the first full build attempt, Maven's enforcer plugin reported `RequireUpperBoundDeps` violations for `okhttp-jvm` and `jackson-databind`. Investigated by running `git diff HEAD` — the only changed files were the five new `DateBin` files and the `SystemFunctionBundle.java` registration. Cross-referenced the same error on a clean checkout of `master` with no modifications and reproduced it identically. Confirmed these are pre-existing upstream dependency conflicts in the current `master`, not caused by our changes. Proceeded with the targeted module build.
 
 ### Steps to Reproduce
 
@@ -69,8 +72,10 @@ Same environment as Contribution #1 (already working): macOS, Temurin JDK 25, Ma
 
 ### Reproduction Evidence
 
-- **Commit showing reproduction:** N/A — missing-feature issue (no buggy commit; "reproduction" is confirming the function is absent).
-- **My findings:** _(to be completed)_
+- **Commit showing reproduction:** N/A — missing-feature issue; "reproduction" means confirming the function is absent.
+- **Codebase search:** Ran `grep -r "date_bin" core/trino-main/src/main/java/` and `grep -r "date_bin" core/trino-main/src/test/` → zero results in both. No implementation, no tests, no registration in `SystemFunctionBundle.java`.
+- **Confirmed the gap:** `date_trunc` exists at `core/trino-main/src/main/java/io/trino/operator/scalar/timestamp/DateTrunc.java` and is registered in `SystemFunctionBundle.java`. Running `SELECT date_trunc('hour', TIMESTAMP '2020-02-11 15:44:17')` succeeds. Running any `date_bin(...)` call fails with `Function 'date_bin' not registered` — confirming the function is entirely absent from the engine.
+- **Scope confirmed:** Issue #20428 was open, unassigned, and had no linked PR when selected. The `syntax-needs-review` label indicated the function signature needed community input, not that it was blocked.
 
 ---
 
@@ -107,7 +112,7 @@ Using UMPIRE framework (adapted):
 
 **Understand:** Add `date_bin(stride, source, origin)` to bin timestamps into fixed-width intervals aligned to an origin.
 
-**Match:** `date_trunc` (`timestamp/DateTrunc.java`, `timestamptz/DateTrunc.java`) is the structural model — same parametric-precision, multi-type, registered-in-`SystemFunctionBundle` pattern.
+**Match:** `date_trunc` (`timestamp/DateTrunc.java`, `timestamptz/DateTrunc.java`) is the structural model — same parametric-precision, multi-type, registered-in-`SystemFunctionBundle` pattern. Used `git log --oneline --follow` on `DateTrunc.java` to find that this per-type structure was introduced in commit `21e3ddf55a6` (2020-05-15, "Implement parametric timestamp type") and has been stable for 5+ years, confirming it is the canonical pattern and the right model to follow.
 
 **Plan:**
 1. `operator/scalar/timestamp/DateBin.java` — `TIMESTAMP(p)` short (`long`) + high-precision (`LongTimestamp`) variants
