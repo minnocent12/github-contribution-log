@@ -3,7 +3,7 @@
 **Contribution Number:** 1  
 **Student:** Mirenge Innocent  
 **Issue:** https://github.com/trinodb/trino/issues/2942  
-**Status:** Phase IV — Complete ✓ | PR #29773 — review requested from maintainers; awaiting approval
+**Status:** Phase I ✓ | Phase II ✓ | Phase III ✓ | Phase IV ✓ — PR [#29773](https://github.com/trinodb/trino/pull/29773) **MERGED** into trinodb/trino master (`56d8d8f`) ✓
 
 > 📁 Part of my [Open Source Contribution Log](README.md) · Contribution #1 of 2
 
@@ -235,7 +235,7 @@ The original manual implementation treated hyphens as word boundaries (PostgreSQ
 
 **PR Description:** Adds a native `title_case(string)` SQL function that converts strings to title case (first letter of each word uppercased, the rest lowercased), implemented via `SliceUtf8.toTitleCase()` (airlift/slice 2.8). Includes `varchar` and `char` variants, unit tests in `TestStringFunctions`, and documentation in `functions/string.md`, `list.md`, and `list-by-topic.md`. Closes #2942. Originally named `initcap`; renamed to `title_case` per `martint`'s feedback — alias discussion ongoing.
 
-**Status:** `wendigo` approved ✓ · `ebyhr` approved ✓ — 2 approvals; CI 99/99 green on `6a28af8`; awaiting `martint` and `mosabua` reviews
+**Status:** MERGED ✓ — `wendigo` merged into `trinodb:master` via the merge queue. Merge commit: [`56d8d8f`](https://github.com/trinodb/trino/commit/56d8d8f). Added to milestone 483. `martint` (Trino co-founder) commented: *"Thanks for your contribution, @minnocent12! This will be in the next release."*
 
 **CLA:** Approved by Martin Traverso (Trino co-founder) on 2026-06-15. Added to `trinodb/Contributors` GitHub team.
 
@@ -257,6 +257,7 @@ The original manual implementation treated hyphens as word boundaries (PostgreSQ
 - **2026-07-13:** Squashed 4 commits into 1 ("Add title_case string function") and updated PR title from "Add initcap() function for title case string conversion" to "Add title_case string function" per ebyhr's request.
 - **2026-07-13:** CI failed: `check-commits-dispatcher` — "PR requires a rebase. Found: 1 merge commits." Root cause: force-push triggered GitHub to auto-create a merge commit. Fixed via GitHub API: fetched the tree SHA from the merge commit (which contained all our changes + upstream master), created a new commit object with that tree parented directly to upstream master HEAD (`bbe8701b`), and force-updated the branch ref to `dccc2862`. Clean linear history restored, CI re-triggered.
 - **2026-07-14:** `wendigo` flagged an accidental `pom.xml` change (`software.amazon.awssdk` downgraded `2.47.0` → `2.46.21`). Fixed via GitHub API (`df4e280`). Then `wendigo` flagged additional unintended files: `.github/actions/setup/action.yml`, iceberg plugin files, `TranslationMap.java`, and others — all inherited from the old merge commit tree. Root cause: the original tree was built from a merge commit base, not from upstream master directly. Fixed by rebuilding the tree from scratch: started from upstream master's tree (`60a4d097`) and patched in only our 5 intended files (`StringFunctions.java`, `TestStringFunctions.java`, `string.md`, `list.md`, `list-by-topic.md`). New clean commit `6a28af8` — diff shows exactly 5 files and nothing else. CI 99/99 green. `PlePato` asked if `initcap` alias was being dropped — `wendigo` confirmed: just `title_case`, no alias.
+- **2026-07-14:** `wendigo` merged the PR via the merge queue into `trinodb:master` — merge commit [`56d8d8f`](https://github.com/trinodb/trino/commit/56d8d8f), 99 checks passed. Added to milestone 483. `martint` (Trino co-founder) commented: *"Thanks for your contribution, @minnocent12! This will be in the next release."* **PR MERGED. Contribution #1 complete.**
 
 ---
 
