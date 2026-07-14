@@ -200,17 +200,14 @@ Result: `BUILD SUCCESS` — no compilation errors or warnings in the changed fil
 
 | Commit | Date | Description |
 |--------|------|-------------|
-| [`e17e199`](https://github.com/minnocent12/trino/commit/e17e1990beb) | Jun 6, 2026 | Add initcap() string function for title case conversion |
-| [`a7019f4`](https://github.com/minnocent12/trino/commit/a7019f49bda) | Jun 10, 2026 | Add docs for initcap() string function |
-| [`8b3b180`](https://github.com/minnocent12/trino/commit/8b3b180b842) | Jun 18, 2026 | Use SliceUtf8.toTitleCase() for initcap() implementation |
-| [`f6136b7`](https://github.com/minnocent12/trino/commit/f6136b77a38) | Jun 27, 2026 | Rename initcap() to title_case() per maintainer feedback |
+| [`dccc286`](https://github.com/minnocent12/trino/commit/dccc2862ce51c719c4c6fa52b2a79857ed2afa32) | Jul 13, 2026 | Add title_case string function (squashed from 4 commits; rebased on upstream master via GitHub API) |
 
-**Files modified with key commits:**
-- `core/trino-main/src/main/java/io/trino/operator/scalar/StringFunctions.java` — `e17e199`, `8b3b180`, `f6136b7`: added `titleCase()` and `charTitleCase()` using `SliceUtf8.toTitleCase()` with `neverFails = true`
-- `core/trino-main/src/test/java/io/trino/operator/scalar/TestStringFunctions.java` — `e17e199`, `f6136b7`: added `testTitleCase()` (11 test cases) and `testCharTitleCase()` (5 test cases) — 16 new assertions total
-- `docs/src/main/sphinx/functions/string.md` — `a7019f4`, `f6136b7`: added `title_case()` function description and SQL example
-- `docs/src/main/sphinx/functions/list.md` — `a7019f4`, `f6136b7`: added `title_case` to alphabetical T section
-- `docs/src/main/sphinx/functions/list-by-topic.md` — `a7019f4`, `f6136b7`: added `title_case` to string functions topic list
+**Files modified (all in `dccc286`):**
+- `core/trino-main/src/main/java/io/trino/operator/scalar/StringFunctions.java` — added `titleCase()` and `charTitleCase()` using `SliceUtf8.toTitleCase()` with `neverFails = true`
+- `core/trino-main/src/test/java/io/trino/operator/scalar/TestStringFunctions.java` — added `testTitleCase()` (13 test cases incl. emoji + Chinese) and `testCharTitleCase()` (5 test cases) — 18 new assertions total
+- `docs/src/main/sphinx/functions/string.md` — added `title_case()` function description in alphabetical T section (before `translate`), single-backtick SQL example
+- `docs/src/main/sphinx/functions/list.md` — added `title_case` to alphabetical T section
+- `docs/src/main/sphinx/functions/list-by-topic.md` — added `title_case` to string functions topic list in alphabetical position (between `substring` and `to_utf8`)
 
 **Key decision:** Initially implemented manually using `tryGetCodePointAt` + `Character.toTitleCase(int)` + `setCodePointAt`. Updated to `SliceUtf8.toTitleCase()` after `wendigo`'s feedback (commit `8b3b180`), making the implementation a clean one-liner aligned with the rest of the codebase.
 
@@ -238,7 +235,7 @@ The original manual implementation treated hyphens as word boundaries (PostgreSQ
 
 **PR Description:** Adds a native `title_case(string)` SQL function that converts strings to title case (first letter of each word uppercased, the rest lowercased), implemented via `SliceUtf8.toTitleCase()` (airlift/slice 2.8). Includes `varchar` and `char` variants, unit tests in `TestStringFunctions`, and documentation in `functions/string.md`, `list.md`, and `list-by-topic.md`. Closes #2942. Originally named `initcap`; renamed to `title_case` per `martint`'s feedback — alias discussion ongoing.
 
-**Status:** `wendigo` approved ✓ — awaiting `martint` and `mosabua` reviews; CI 102/102 green
+**Status:** `wendigo` approved ✓ · `ebyhr` approved ✓ — 2 approvals; CI running; awaiting `martint` and `mosabua` reviews; 4 ebyhr comment threads to resolve (click "Resolve comment" in Files changed tab)
 
 **CLA:** Approved by Martin Traverso (Trino co-founder) on 2026-06-15. Added to `trinodb/Contributors` GitHub team.
 
@@ -252,6 +249,13 @@ The original manual implementation treated hyphens as word boundaries (PostgreSQ
 - **2026-06-27:** `PlePato` (maintainer) commented supporting the `initcap` alias: *"I agree with @minnocent12 — the engines that use initcap syntax: Postgres, Oracle, Databricks/SparkSQL, Snowflake, Redshift"* — alias decision pending `martint`'s confirmation
 - **2026-06-27:** PR description updated to reflect `title_case` rename and current state; review formally requested from `martint` and `mosabua`
 - **2026-06-29:** `wendigo` (Trino co-creator) **approved** the PR ✓ and asked `@martint` to weigh in on the function signature — `martint` and `mosabua` reviews still pending
+- **2026-07-13:** `ebyhr` (Trino core maintainer) **approved** the PR ✓ — PR now has 2 approvals (wendigo + ebyhr). Also left 4 inline review comments:
+  1. **Sort order in `list-by-topic.md`** — `title_case` was placed after `hamming_distance` instead of alphabetically between `substring` and `to_utf8`. Moved to correct position.
+  2. **Sort order in `string.md`** — `title_case` block was placed after `hamming_distance` section instead of alphabetically before `translate`. Moved to correct alphabetical position in the T section.
+  3. **Double backticks in docs example** — the inline SQL in the `title_case` description used double backticks (`` ``SELECT...`` ``); corrected to single backticks per the docs RST convention.
+  4. **Additional test cases requested** — emoji and non-ASCII characters. Added two cases to `testTitleCase()`: `title_case('hello 😀 world')` → `'Hello 😀 World'` and `title_case('中文字符')` → `'中文字符'`.
+- **2026-07-13:** Squashed 4 commits into 1 ("Add title_case string function") and updated PR title from "Add initcap() function for title case string conversion" to "Add title_case string function" per ebyhr's request.
+- **2026-07-13:** CI failed: `check-commits-dispatcher` — "PR requires a rebase. Found: 1 merge commits." Root cause: force-push triggered GitHub to auto-create a merge commit. Fixed via GitHub API: fetched the tree SHA from the merge commit (which contained all our changes + upstream master), created a new commit object with that tree parented directly to upstream master HEAD (`bbe8701b`), and force-updated the branch ref to `dccc2862`. Clean linear history restored, CI re-triggered.
 
 ---
 
