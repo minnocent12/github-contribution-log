@@ -200,7 +200,7 @@ Result: `BUILD SUCCESS` — no compilation errors or warnings in the changed fil
 
 | Commit | Date | Description |
 |--------|------|-------------|
-| [`df4e280`](https://github.com/minnocent12/trino/commit/df4e280241bd75147ce609da5a021c95b884c9f2) | Jul 14, 2026 | Add title_case string function (squashed; rebased on upstream master; pom.xml accidental change dropped) |
+| [`6a28af8`](https://github.com/minnocent12/trino/commit/6a28af863c10b916b41bd5d57dd21d3ce1d489d0) | Jul 14, 2026 | Add title_case string function (clean commit: only 5 intended files, rebased on upstream master) |
 
 **Files modified (all in `dccc286`):**
 - `core/trino-main/src/main/java/io/trino/operator/scalar/StringFunctions.java` — added `titleCase()` and `charTitleCase()` using `SliceUtf8.toTitleCase()` with `neverFails = true`
@@ -235,7 +235,7 @@ The original manual implementation treated hyphens as word boundaries (PostgreSQ
 
 **PR Description:** Adds a native `title_case(string)` SQL function that converts strings to title case (first letter of each word uppercased, the rest lowercased), implemented via `SliceUtf8.toTitleCase()` (airlift/slice 2.8). Includes `varchar` and `char` variants, unit tests in `TestStringFunctions`, and documentation in `functions/string.md`, `list.md`, and `list-by-topic.md`. Closes #2942. Originally named `initcap`; renamed to `title_case` per `martint`'s feedback — alias discussion ongoing.
 
-**Status:** `wendigo` approved ✓ · `ebyhr` approved ✓ — 2 approvals; CI running on `df4e280`; awaiting `martint` and `mosabua` reviews
+**Status:** `wendigo` approved ✓ · `ebyhr` approved ✓ — 2 approvals; CI 99/99 green on `6a28af8`; awaiting `martint` and `mosabua` reviews
 
 **CLA:** Approved by Martin Traverso (Trino co-founder) on 2026-06-15. Added to `trinodb/Contributors` GitHub team.
 
@@ -256,7 +256,7 @@ The original manual implementation treated hyphens as word boundaries (PostgreSQ
   4. **Additional test cases requested** — emoji and non-ASCII characters. Added two cases to `testTitleCase()`: `title_case('hello 😀 world')` → `'Hello 😀 World'` and `title_case('中文字符')` → `'中文字符'`.
 - **2026-07-13:** Squashed 4 commits into 1 ("Add title_case string function") and updated PR title from "Add initcap() function for title case string conversion" to "Add title_case string function" per ebyhr's request.
 - **2026-07-13:** CI failed: `check-commits-dispatcher` — "PR requires a rebase. Found: 1 merge commits." Root cause: force-push triggered GitHub to auto-create a merge commit. Fixed via GitHub API: fetched the tree SHA from the merge commit (which contained all our changes + upstream master), created a new commit object with that tree parented directly to upstream master HEAD (`bbe8701b`), and force-updated the branch ref to `dccc2862`. Clean linear history restored, CI re-triggered.
-- **2026-07-14:** `wendigo` flagged an accidental `pom.xml` change in the branch — `software.amazon.awssdk` had been downgraded from `2.47.0` to `2.46.21` (introduced when the merge commit tree was used). `wendigo` commented "Drop this." Fixed via GitHub API: created a new blob with `2.47.0` restored, new tree from it, new commit `df4e280` parented to current upstream master HEAD (`59f520cc`). Single clean commit, branch fully up to date. CI re-triggered. `PlePato` asked if `initcap` alias was being dropped — `wendigo` confirmed: just `title_case`, no alias (already the case in our implementation).
+- **2026-07-14:** `wendigo` flagged an accidental `pom.xml` change (`software.amazon.awssdk` downgraded `2.47.0` → `2.46.21`). Fixed via GitHub API (`df4e280`). Then `wendigo` flagged additional unintended files: `.github/actions/setup/action.yml`, iceberg plugin files, `TranslationMap.java`, and others — all inherited from the old merge commit tree. Root cause: the original tree was built from a merge commit base, not from upstream master directly. Fixed by rebuilding the tree from scratch: started from upstream master's tree (`60a4d097`) and patched in only our 5 intended files (`StringFunctions.java`, `TestStringFunctions.java`, `string.md`, `list.md`, `list-by-topic.md`). New clean commit `6a28af8` — diff shows exactly 5 files and nothing else. CI 99/99 green. `PlePato` asked if `initcap` alias was being dropped — `wendigo` confirmed: just `title_case`, no alias.
 
 ---
 
