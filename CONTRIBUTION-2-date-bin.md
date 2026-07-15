@@ -203,8 +203,9 @@ _(to be completed)_
 - **2026-07-15:** CI failed again on `cf18515` — 31 checks failing. Root cause: `SystemFunctionBundle.java` in our branch was taken from an old tree; upstream `master` had since added `.scalar(VarcharMethods.class)`, `.scalar(CharMethods.class)`, `.scalar(CharToVarcharCast.class)`, and `ROW_FIELDS_FUNCTION` registrations. Without them, every function in those classes threw "Function not registered" at test time. Fix: fetched upstream master's current `SystemFunctionBundle.java` blob, applied our DateBin import and two `.scalar()` registrations via script, created clean commit `eb77ad1` on upstream master. Failures dropped from 31 → 6.
 - **2026-07-15:** `maven-checks` still failing on `eb77ad1` — airstyle rejected the import order in `SystemFunctionBundle.java`. Our script had placed `import io.trino.operator.scalar.timestamp.DateBin` after `DateTrunc` instead of the correct alphabetical position (between `DateAdd` and `DateDiff`). Fix: re-cloned branch, ran `./mvnw airstyle:format -pl core/trino-main -am -q` (Java 25), which auto-corrected the import position, created new blob `6ac2ac6e`, new commit `46caab8` parented to upstream master `c5620867`. CI re-triggered.
 - **2026-07-15:** All 99 CI checks passed on commit `46caab8` ✓. Key lesson: always run `airstyle:format` after any manual import insertion and never assume import placement — the formatter determines the canonical position.
+- **2026-07-15:** Added documentation — new "Binning function" section in `docs/src/main/sphinx/functions/datetime.md`, mirroring the "Truncation function" section. Two SQL examples showing 15-minute bucket and sub-second (0.5 s) stride. Committed as `e53e217` via GitHub API (new tree on top of `46caab8`). Addresses `needs-docs` label. CI re-triggered; once green, will mark PR ready for review.
 
-**Status:** Draft PR — CI green on `46caab8`; docs to be added (`needs-docs` label); then mark ready for review
+**Status:** Draft PR — CI running on `e53e217` (docs commit); once CI green, mark ready for review
 
 ---
 
