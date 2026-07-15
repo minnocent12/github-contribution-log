@@ -3,7 +3,7 @@
 **Contribution Number:** 2
 **Student:** Mirenge Innocent
 **Issue:** https://github.com/trinodb/trino/issues/20428
-**Status:** Phase I ✓ | Phase II ✓ | Phase III in progress — Draft PR [#30075](https://github.com/trinodb/trino/pull/30075) open, awaiting CI and maintainer review
+**Status:** Phase I ✓ | Phase II ✓ | Phase III ✓ | Phase IV pending — PR [#30075](https://github.com/trinodb/trino/pull/30075) awaiting maintainer review
 
 > 📁 Part of my [Open Source Contribution Log](README.md) · Contribution #2 of 3
 
@@ -205,7 +205,7 @@ _(to be completed)_
 - **2026-07-15:** All 99 CI checks passed on commit `46caab8` ✓. Key lesson: always run `airstyle:format` after any manual import insertion and never assume import placement — the formatter determines the canonical position.
 - **2026-07-15:** Added documentation — new "Binning function" section in `docs/src/main/sphinx/functions/datetime.md`, mirroring the "Truncation function" section. Two SQL examples showing 15-minute bucket and sub-second (0.5 s) stride. Committed as `e53e217` via GitHub API (new tree on top of `46caab8`). Addresses `needs-docs` label. CI re-triggered; once green, will mark PR ready for review.
 
-**Status:** Draft PR — CI running on `e53e217` (docs commit); once CI green, mark ready for review
+**Status:** PR ready for review — CI green on `46caab8` (implementation); docs added in `e53e217`; PR marked ready for review; awaiting `martint` review
 
 ---
 

@@ -10,7 +10,7 @@ This repository documents my open source contributions for the CodePath AI301 ca
 | # | Contribution | Project | Issue | Status |
 |---|--------------|---------|-------|--------|
 | 1 | [Add `title_case` string function](CONTRIBUTION-1-initcap.md) | [trinodb/trino](https://github.com/trinodb/trino) | [#2942](https://github.com/trinodb/trino/issues/2942) | Phase I ✓ · Phase II ✓ · Phase III ✓ · Phase IV ✓ — PR [#29773](https://github.com/trinodb/trino/pull/29773) **MERGED** ✓ |
-| 2 | [Add `date_bin` function](CONTRIBUTION-2-date-bin.md) | [trinodb/trino](https://github.com/trinodb/trino) | [#20428](https://github.com/trinodb/trino/issues/20428) | Phase I ✓ · Phase II ✓ · Phase III in progress — Draft PR [#30075](https://github.com/trinodb/trino/pull/30075) · CI ✓ · docs added · pending ready-for-review · Phase IV pending |
+| 2 | [Add `date_bin` function](CONTRIBUTION-2-date-bin.md) | [trinodb/trino](https://github.com/trinodb/trino) | [#20428](https://github.com/trinodb/trino/issues/20428) | Phase I ✓ · Phase II ✓ · Phase III ✓ · Phase IV pending — PR [#30075](https://github.com/trinodb/trino/pull/30075) awaiting maintainer review |
 | 3 | [Add `to_unixtime_nanos` function](CONTRIBUTION-3-to-unixtime-nanos.md) | [trinodb/trino](https://github.com/trinodb/trino) | [#6819](https://github.com/trinodb/trino/issues/6819) | Phase I ✓ · Phase II ✓ · Phase III pending (awaiting maintainer reply) · Phase IV pending |
 
 ## About the Project
