@@ -5,7 +5,7 @@
 **Issue:** https://github.com/trinodb/trino/issues/20428
 **Status:** Phase I ✓ | Phase II ✓ | Phase III in progress — Draft PR [#30075](https://github.com/trinodb/trino/pull/30075) open, awaiting CI and maintainer review
 
-> 📁 Part of my [Open Source Contribution Log](README.md) · Contribution #2 of 2
+> 📁 Part of my [Open Source Contribution Log](README.md) · Contribution #2 of 3
 
 ---
 
@@ -199,9 +199,12 @@ _(to be completed)_
 - **2026-06-19:** Self-assigned and posted claim comment proposing the PostgreSQL-compatible signature; awaiting maintainer confirmation per `syntax-needs-review` label.
 - **2026-06-27:** No reply after one week — proceeded with implementation. Draft PR #30075 opened; CI running.
 - **2026-06-27:** `ebyhr` added `syntax-needs-review` and `needs-docs` labels. `wendigo` requested a review from `martint`.
-- **2026-07-14:** CI failing — 4 checks failed (`build-success`, `maven-checks 25.0.3`, `maven-checks 26`, `maven-checks 27-ea`). Root cause: `airstyle-maven-plugin` formatting check found 1 file needing reformatting — two `static import` lines in `timestamp/TestDateBin.java` were in the wrong alphabetical order. Fixed by running `./mvnw airstyle:format -pl core/trino-main` locally (requires Java 25), then rebuilding a clean commit `cf18515` on current upstream master via GitHub API (same 5-file approach as Contribution #1). CI re-triggered. Docs still pending (`needs-docs` label).
+- **2026-07-14:** CI failing — 4 checks failed (`build-success`, `maven-checks 25.0.3`, `maven-checks 26`, `maven-checks 27-ea`). Root cause: `airstyle-maven-plugin` formatting check found 1 file needing reformatting — two `static import` lines in `timestamp/TestDateBin.java` were in the wrong alphabetical order. Fixed by running `./mvnw airstyle:format -pl core/trino-main` locally (requires Java 25), then rebuilding a clean commit `cf18515` on current upstream master via GitHub API (same 5-file approach as Contribution #1). CI re-triggered.
+- **2026-07-15:** CI failed again on `cf18515` — 31 checks failing. Root cause: `SystemFunctionBundle.java` in our branch was taken from an old tree; upstream `master` had since added `.scalar(VarcharMethods.class)`, `.scalar(CharMethods.class)`, `.scalar(CharToVarcharCast.class)`, and `ROW_FIELDS_FUNCTION` registrations. Without them, every function in those classes threw "Function not registered" at test time. Fix: fetched upstream master's current `SystemFunctionBundle.java` blob, applied our DateBin import and two `.scalar()` registrations via script, created clean commit `eb77ad1` on upstream master. Failures dropped from 31 → 6.
+- **2026-07-15:** `maven-checks` still failing on `eb77ad1` — airstyle rejected the import order in `SystemFunctionBundle.java`. Our script had placed `import io.trino.operator.scalar.timestamp.DateBin` after `DateTrunc` instead of the correct alphabetical position (between `DateAdd` and `DateDiff`). Fix: re-cloned branch, ran `./mvnw airstyle:format -pl core/trino-main -am -q` (Java 25), which auto-corrected the import position, created new blob `6ac2ac6e`, new commit `46caab8` parented to upstream master `c5620867`. CI re-triggered.
+- **2026-07-15:** All 99 CI checks passed on commit `46caab8` ✓. Key lesson: always run `airstyle:format` after any manual import insertion and never assume import placement — the formatter determines the canonical position.
 
-**Status:** Draft PR — CI running on `cf18515`; docs to be added once CI green; then mark ready for review
+**Status:** Draft PR — CI green on `46caab8`; docs to be added (`needs-docs` label); then mark ready for review
 
 ---
 
