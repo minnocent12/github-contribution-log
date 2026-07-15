@@ -198,8 +198,10 @@ _(to be completed)_
 **Maintainer Feedback:**
 - **2026-06-19:** Self-assigned and posted claim comment proposing the PostgreSQL-compatible signature; awaiting maintainer confirmation per `syntax-needs-review` label.
 - **2026-06-27:** No reply after one week — proceeded with implementation. Draft PR #30075 opened; CI running.
+- **2026-06-27:** `ebyhr` added `syntax-needs-review` and `needs-docs` labels. `wendigo` requested a review from `martint`.
+- **2026-07-14:** CI failing — 4 checks failed (`build-success`, `maven-checks 25.0.3`, `maven-checks 26`, `maven-checks 27-ea`). Root cause: `airstyle-maven-plugin` formatting check found 1 file needing reformatting — two `static import` lines in `timestamp/TestDateBin.java` were in the wrong alphabetical order. Fixed by running `./mvnw airstyle:format -pl core/trino-main` locally (requires Java 25), then rebuilding a clean commit `cf18515` on current upstream master via GitHub API (same 5-file approach as Contribution #1). CI re-triggered. Docs still pending (`needs-docs` label).
 
-**Status:** Draft PR open — awaiting CI and maintainer signature confirmation
+**Status:** Draft PR — CI running on `cf18515`; docs to be added once CI green; then mark ready for review
 
 ---
 
