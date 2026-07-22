@@ -139,22 +139,24 @@ Using UMPIRE framework (adapted):
 
 ### Unit Tests
 
-- [ ] Basic binning into N-minute buckets
-- [ ] Sub-second stride (e.g. 0.5 seconds)
-- [ ] `source` exactly on a bin boundary
-- [ ] `source` before `origin` (negative floor division)
-- [ ] High-precision `TIMESTAMP(p)` with p > 6
-- [ ] `TIMESTAMP WITH TIME ZONE` variant
-- [ ] Error: zero or negative stride
-- [ ] Error / rejection: `INTERVAL YEAR TO MONTH` stride
+Both `TestDateBin.java` files mirror the structure and naming conventions of the existing `TestDateTrunc.java` files in the same packages (`timestamp/` and `timestamptz/`), including method naming (`testBin`, `testZeroStride`), use of `AbstractTestFunctions` as the base class, and per-precision assertion loops — the same pattern used throughout Trino's datetime test suite.
+
+- [x] Basic binning into N-minute buckets — `date_bin(INTERVAL '15' MINUTE, TIMESTAMP '2020-02-11 15:44:17', TIMESTAMP '2001-01-01 00:00:00')` → `2020-02-11 15:30:00`
+- [x] Sub-second stride (0.5 seconds) — exercises millisecond-precision path
+- [x] `source` exactly on a bin boundary — result equals `source`
+- [x] `source` before `origin` (negative floor division) — this is an edge case the issue did not explicitly call out; `Math.floorDiv` (not `/`) is required here because Java's `/` truncates toward zero, which would place `source` in the wrong bin when it precedes `origin`
+- [x] All 13 timestamp precisions (p = 0 through 12) — parametric `TIMESTAMP(p)` tested across the full precision range in a single loop
+- [x] `TIMESTAMP WITH TIME ZONE` variant — separate `TestDateBin` in `timestamptz/` package covering both short (`long`) and `LongTimestampWithTimeZone` variants
+- [x] Error: zero or negative stride — throws `INVALID_FUNCTION_ARGUMENT`
+- [ ] Error / rejection: `INTERVAL YEAR TO MONTH` stride — not applicable; Trino's type system rejects this at the call site before the function is reached
 
 ### Integration Tests
 
-_(to be assessed — datetime scalar functions are typically covered by the unit tests run through Trino's expression engine)_
+Datetime scalar functions in Trino are exercised through the `AbstractTestFunctions` infrastructure, which routes assertions through the full expression engine — providing integration-level coverage without a separate integration test class. All existing integration test suites passed (CI 99/99 ✓).
 
 ### Manual Testing
 
-_(to be completed)_
+CI is the primary validation gate. All 99 checks passed on commit `46caab8` (implementation) and again on `e53e217` (docs) — including `build-success` (required check), `maven-checks` across Java 25/26/27-ea (airstyle + error-prone), `build-pt-junit` (parametric-type JUnit suite), and `artifact-checks`. No pre-existing test failures were introduced by our changes. The PR diff is scoped to exactly 6 files: 4 new source/test files, 1 modified registration file, 1 updated doc.
 
 ---
 
@@ -185,7 +187,7 @@ _(to be completed)_
 - **Files modified:**
   - `core/trino-main/src/main/java/io/trino/metadata/SystemFunctionBundle.java` — added import + two `.scalar()` registrations beside the `date_trunc` entries
 - **Branch:** `add-date-bin-function`
-- **Docs:** pending — will add after maintainer confirms the signature
+- **Docs added:** `docs/src/main/sphinx/functions/datetime.md` — new "Binning function" section with two SQL examples; commit `e53e217`
 
 ---
 
@@ -213,15 +215,27 @@ _(to be completed)_
 
 ### Technical Skills Gained
 
-_(to be completed)_
+- **Parametric timestamp arithmetic in Trino**: `TIMESTAMP(p)` has two runtime representations — a `long` (epoch micros) for p ≤ 6 and a `LongTimestamp` for p > 6. Implementing all four variants (two types × two precisions) gave me a solid model of how Trino handles precision-parametric datetime types.
+- **`floorDiv` vs integer division**: Java's `/` truncates toward zero, giving wrong results when `source < origin`. `Math.floorDiv` rounds toward −∞, matching PostgreSQL's `date_bin` spec. Catching this edge case was the key correctness insight for the implementation.
+- **GitHub API-based clean commits**: Learned to build commits using the git objects API (blob → tree → commit → ref update) to guarantee a minimal diff and linear history, bypassing the limitations of shallow clones and avoiding the `check-commits-dispatcher` failures that merge commits trigger.
+- **Trino's airstyle formatter**: Understood that import order is enforced mechanically — the formatter is the authority, not the developer. Running `./mvnw airstyle:format -pl core/trino-main -am -q` locally before every commit push is now a fixed step in my workflow.
 
 ### Challenges Overcome
 
-_(to be completed)_
+**1. Upstream drift in `SystemFunctionBundle.java` caused 31 CI failures.**
+After the initial draft PR opened, 31 checks failed with "Function not registered" errors for unrelated built-in functions like `starts_with` and `to_utf8`. Root cause: the `SystemFunctionBundle.java` blob in our branch came from an older commit tree and was missing new `.scalar()` registrations upstream had added (`VarcharMethods`, `CharMethods`, `CharToVarcharCast`, `ROW_FIELDS_FUNCTION`). Without them, those function classes were invisible to the engine. Fix: fetched the current upstream master blob, applied our two DateBin registrations on top, rebuilt the commit. Lesson: in an active codebase, always base any modified file on the current upstream, not a snapshot from branch creation time.
+
+**2. Airstyle import ordering rejected twice.**
+Trino's `airstyle-maven-plugin` enforces strict alphabetical import ordering and fails CI if any file needs reformatting. Our import for `timestamp.DateBin` was inserted in the wrong position twice: first, two static imports in `TestDateBin.java` were out of alphabetical order; second, in `SystemFunctionBundle.java`, the import was placed after `DateTrunc` instead of its correct position between `DateAdd` and `DateDiff`. Fix: never guess import position — always run `airstyle:format` locally and let the formatter decide. This cost two extra 20-minute CI cycles that a 30-second local run would have prevented.
+
+**3. Clean commit construction for a project with strict history requirements.**
+Trino's `check-commits-dispatcher` rejects merge commits. Local shallow clones cannot rebase against upstream reliably. The solution was to use the GitHub API git objects endpoint: fetch the current upstream master tree SHA, patch in only the intended file blobs, create a new tree, create a commit parented directly to upstream master, and force-push the branch ref. This guarantees a linear history and a diff containing exactly the files we intended to change — nothing more.
 
 ### What I'd Do Differently Next Time
 
-_(to be completed)_
+- **Run `airstyle:format` locally before every GitHub API commit.** Both CI regressions in this PR could have been caught in 30 seconds locally instead of waiting 20–30 minutes for CI. This is now a non-negotiable step before any push.
+- **Always fetch the current upstream blob for every file the PR touches.** A quick `git show upstream/master:path/to/File.java` before constructing the commit tree would have avoided the 31-failure round caused by upstream drift.
+- **Add docs in the initial commit.** The `needs-docs` label appeared on day one. Including documentation upfront would have kept the PR to one commit and one CI cycle instead of two.
 
 ---
 
