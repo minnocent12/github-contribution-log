@@ -3,7 +3,7 @@
 **Contribution Number:** 2
 **Student:** Mirenge Innocent
 **Issue:** https://github.com/trinodb/trino/issues/20428
-**Status:** Phase I ✓ | Phase II ✓ | Phase III ✓ | Phase IV pending — PR [#30075](https://github.com/trinodb/trino/pull/30075) awaiting maintainer review
+**Status:** Phase I ✓ | Phase II ✓ | Phase III ✓ | Phase IV ✓ — PR [#30075](https://github.com/trinodb/trino/pull/30075) awaiting merge
 
 > 📁 Part of my [Open Source Contribution Log](README.md) · Contribution #2 of 3
 
