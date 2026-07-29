@@ -3,7 +3,7 @@
 **Contribution Number:** 3
 **Student:** Mirenge Innocent
 **Issue:** https://github.com/trinodb/trino/issues/6819
-**Status:** Phase I ✓ | Phase II ✓ | Phase III pending — awaiting maintainer scope confirmation
+**Status:** Phase I ✓ | Phase II ✓ | Phase III ✓ | Phase IV ✓ — PR [#30513](https://github.com/trinodb/trino/pull/30513) awaiting merge
 
 > 📁 Part of my [Open Source Contribution Log](README.md) · Contribution #3 of 3
 
@@ -157,19 +157,21 @@ Using UMPIRE framework:
 
 ### Unit Tests
 
-- [ ] All 13 precisions p=0..12 (mirrors pattern from `TestDateBin`, `TestDateTrunc`)
-- [ ] Epoch boundary: `TIMESTAMP '1970-01-01 00:00:00 UTC'` → `0`
-- [ ] Sub-millisecond precision: `TIMESTAMP '2021-01-01 00:00:00.123456789 UTC'` → `1609459200123456789`
-- [ ] Before epoch: negative epoch nanoseconds (e.g., 1969-12-31)
-- [ ] `LongTimestampWithTimeZone` path (p > 3) produces same result as computed manually
+`TestToUnixTimeNanos.java` in the `timestamptz/` package mirrors the structure of `TestDateTrunc.java` in the same package — `QueryAssertions` base, `@TestInstance(PER_CLASS)`, `@Execution(CONCURRENT)`, per-precision assertions.
+
+- [x] All 13 timestamp precisions (p = 0 … 12) — p=0..3 hit the short form (`long`), p=4..12 hit the `LongTimestampWithTimeZone` path
+- [x] Epoch boundary — `TIMESTAMP '1970-01-01 00:00:00 UTC'` → `0`; same with p=9 (`TIMESTAMP '1970-01-01 00:00:00.000000000 UTC'`) → `0`
+- [x] Sub-millisecond precision — `TIMESTAMP '2021-01-01 00:00:00.123456789 UTC'` → `1609459200123456789`
+- [x] Before-epoch — `TIMESTAMP '1969-12-31 23:59:59.999999999 UTC'` → `-1`
+- [x] Sub-nanosecond truncation (p=10..12) — picos beyond nano precision are truncated via integer division, verified to produce the same result as p=9
 
 ### Integration Tests
 
-_(to be assessed — `to_unixtime` has no dedicated integration tests; unit tests run through the expression engine are sufficient)_
+`to_unixtime` has no dedicated integration tests; unit tests exercised through `QueryAssertions` (which routes through the full expression engine) provide equivalent coverage.
 
 ### Manual Testing
 
-_(to be completed after branch is created)_
+Airstyle formatter verified locally before creating the commit — `ToUnixTimeNanos.java` and `TestToUnixTimeNanos.java` required no formatting changes. `SystemFunctionBundle.java` import placement was confirmed correct (airstyle did not move it). CI running on commit `f804dea`.
 
 ---
 
@@ -185,18 +187,26 @@ _(to be completed after branch is created)_
 
 ### Code Changes
 
-_(to be completed — pending maintainer scope confirmation)_
+- **Files created:**
+  - `core/trino-main/src/main/java/io/trino/operator/scalar/timestamptz/ToUnixTimeNanos.java` — two precision variants: `long` (p ≤ 3) and `LongTimestampWithTimeZone` (p > 3), both returning `BIGINT`
+  - `core/trino-main/src/test/java/io/trino/operator/scalar/timestamptz/TestToUnixTimeNanos.java` — all 13 precisions, epoch boundary, before-epoch
+- **Files modified:**
+  - `core/trino-main/src/main/java/io/trino/metadata/SystemFunctionBundle.java` — added import + `.scalar(ToUnixTimeNanos.class)` beside `ToUnixTime` registration
+  - `docs/src/main/sphinx/functions/datetime.md` — added `to_unixtime_nanos` entry beside `to_unixtime`
+- **Branch:** `add-to-unixtime-nanos-function`
+- **Commit:** `f804dea` — parented to upstream master `7c71ed0` (clean tree, airstyle-verified)
 
 ---
 
 ## Pull Request
 
-**PR Link:** _(to be opened after maintainer replies and branch is created)_
+**PR Link:** https://github.com/trinodb/trino/pull/30513
 
 **Maintainer Feedback:**
-- **2026-07-06:** Claim comment posted; two scope questions asked (plain TIMESTAMP support, naming preference).
+- **2026-07-06:** Claim comment posted; two scope questions asked (plain TIMESTAMP support, naming preference). No maintainer reply after 3 weeks — proceeded with implementation scoped to `TIMESTAMP(p) WITH TIME ZONE` only, matching the existing `to_unixtime` model, per the same approach used for Contribution #2.
+- **2026-07-29:** PR #30513 opened; CI running on commit `f804dea`.
 
-**Status:** Awaiting maintainer reply on issue #6819
+**Status:** PR open — CI running on `f804dea`; awaiting maintainer review
 
 ---
 
@@ -204,15 +214,22 @@ _(to be completed — pending maintainer scope confirmation)_
 
 ### Technical Skills Gained
 
-_(to be completed)_
+- **Compound precision arithmetic**: The conversion from Trino's internal `(epochMillis, picosOfMilli)` representation to nanoseconds requires combining two units — `epochMillis × 1,000,000 + picosOfMilli ÷ 1,000`. Getting the integer division direction right (truncation, not rounding) for the picos part was the key correctness detail.
+- **Clean commit workflow solidified**: By Contribution #3 the GitHub API blob→tree→commit→ref pattern is fully internalized. Always base the tree on the current upstream master tree SHA, verify with airstyle locally, then push once.
+- **Scope decision without maintainer reply**: Both Contributions #2 and #3 had unanswered claim comments. The correct response is to scope conservatively (match the closest existing function, don't add features not in the issue) and document the decision in the PR description.
 
 ### Challenges Overcome
 
-_(to be completed)_
+**Confirming the picos-of-milli truncation behavior.**
+For p=10..12, `getPicosOfMilli()` returns sub-nanosecond precision (e.g., 456,789,012 picos for `.456789012` ms). Integer division by 1,000 truncates: 456,789,012 / 1,000 = 456,789 ns. This is the correct behavior — `BIGINT` nanoseconds cannot represent sub-nanosecond precision, and truncation (not rounding) is consistent with Trino's general approach to precision conversion. The test confirms the same result for p=9, p=10, p=11, and p=12.
+
+**Verifying no scope creep.**
+The claim comment asked two questions: (1) support plain `TIMESTAMP(p)` and (2) also add `to_unixtime_micros`. No maintainer reply after 3 weeks. Proceeded with the minimal scope — only `TIMESTAMP(p) WITH TIME ZONE`, no `to_unixtime_micros` — to keep the PR reviewable and avoid introducing unconfirmed API surface.
 
 ### What I'd Do Differently Next Time
 
-_(to be completed)_
+- **Start with a minimal claim comment, not a multi-question one.** The two scope questions delayed the start for 3 weeks. A "I'll implement X following the Y model" claim without questions gets the work started sooner; questions can be asked in the PR description instead, where maintainers typically respond faster.
+- **No new things to learn about airstyle or clean commits** — the workflow from Contributions #1 and #2 transferred directly. This was the fastest of the three contributions to implement.
 
 ---
 
